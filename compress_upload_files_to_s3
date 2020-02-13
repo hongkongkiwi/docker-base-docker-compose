@@ -3,7 +3,6 @@
 S3_REGION=${S3_REGION:-"us-west-1"}
 S3_HOST=${S3_HOST:-"s3.${S3_REGION}.wasabisys.com"}
 S3_HOST_BUCKET=${S3_HOST_BUCKET:-"%(bucket)s.${S3_HOST}"}
-CONTENT_TYPE="application/gzip"
 ITEM_TO_UPLOAD="$1"
 UPLOAD_PATH="$2"
 TIMEFORMAT=%R
@@ -24,10 +23,14 @@ TIMEFORMAT=%R
 trap 'rm -f "$TMPFILE"' EXIT
 TMPFILE=$(mktemp) || exit 1
 
-echo "Compressing files in ${ITEM_TO_UPLOAD}..." && \
-tar zcf "$TMPFILE" "$ITEM_TO_UPLOAD" && \
-FILESIZE=`ls -lah "$TMPFILE" | awk '{ print $5}'` && \
-echo " - Success (File is $FILESIZE)" && \
+if [ -f "$ITEM_TO_UPLOAD" ]; then
+  echo "Compressing files in ${ITEM_TO_UPLOAD}..." && \
+  tar zcf "$TMPFILE" "$ITEM_TO_UPLOAD" && \
+  FILESIZE=`ls -lah "$TMPFILE" | awk '{ print $5}'` && \
+  echo " - Success (File is $FILESIZE)"
+else
+  TMPFILE="$ITEM_TO_UPLOAD"
+fi
 echo "Uploading files to s3://${S3_BUCKET}/${S3_PATH_PREFIX}/${UPLOAD_PATH}..." && \
 s3cmd \
     --quiet \
@@ -36,7 +39,6 @@ s3cmd \
     --region "$S3_REGION" \
     --host "$S3_HOST" \
     --host-bucket "$S3_HOST_BUCKET" \
-    --content-type "$CONTENT_TYPE" \
     --server-side-encryption \
     --ssl \
     --check-hostname \
