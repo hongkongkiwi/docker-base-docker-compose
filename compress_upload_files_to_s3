@@ -1,0 +1,47 @@
+#!/bin/sh
+
+S3_REGION=${S3_REGION:-"us-west-1"}
+S3_HOST=${S3_HOST:-"s3.${S3_REGION}.wasabisys.com"}
+S3_HOST_BUCKET=${S3_HOST_BUCKET:-"%(bucket)s.${S3_HOST}"}
+CONTENT_TYPE="application/gzip"
+ITEM_TO_UPLOAD="$1"
+UPLOAD_PATH="$2"
+TIMEFORMAT=%R
+
+[ -z $ITEM_TO_UPLOAD ] && { echo >&2 "Need to pass file or directory to upload"; exit 1; }
+[ -z $UPLOAD_PATH ] && { echo >&2 "Need to pass file upload path"; exit 1; }
+[ -z $S3_ACCESS_KEY ] && { echo >&2 "S3_ACCESS_KEY not set"; exit 1; }
+[ -z $S3_SECRET_KEY ] && { echo >&2 "S3_SECRET_KEY not set"; exit 1; }
+[ -z $S3_REGION ] && { echo >&2 "S3_REGION not set"; exit 1; }
+[ -z $S3_HOST ] && { echo >&2 "S3_HOST not set"; exit 1; }
+[ -z $S3_HOST_BUCKET ] && { echo >&2 "S3_HOST_BUCKET not set"; exit 1; }
+[ -z $S3_BUCKET ] && { echo >&2 "S3_BUCKET not set"; exit 1; }
+#[ -z $S3_PATH_PREFIX ] && { echo >&2 "S3_PATH_PREFIX not set"; exit 1; }
+[ -z $CI_COMMIT_SHORT_SHA ] && { echo >&2 "CI_COMMIT_SHORT_SHA not set"; exit 1; }
+
+#S3_PATH_PREFIX=`echo "$S3_PATH_PREFIX" | sed 's/\/$//' | sed 's/^\///'`
+
+trap 'rm -f "$TMPFILE"' EXIT
+TMPFILE=$(mktemp) || exit 1
+
+echo "Compressing files in ${ITEM_TO_UPLOAD}..." && \
+tar zcf "$TMPFILE" "$ITEM_TO_UPLOAD" && \
+FILESIZE=`ls -lah "$TMPFILE" | awk '{ print $5}'` && \
+echo " - Success (File is $FILESIZE)" && \
+echo "Uploading files to s3://${S3_BUCKET}/${S3_PATH_PREFIX}/${UPLOAD_PATH}..." && \
+s3cmd \
+    --quiet \
+    --access_key="$S3_ACCESS_KEY" \
+    --secret_key="$S3_SECRET_KEY" \
+    --region "$S3_REGION" \
+    --host "$S3_HOST" \
+    --host-bucket "$S3_HOST_BUCKET" \
+    --content-type "$CONTENT_TYPE" \
+    --server-side-encryption \
+    --ssl \
+    --check-hostname \
+    --check-certificate \
+    --no-progress \
+    put "$TMPFILE" \
+    "s3://${S3_BUCKET}/${S3_PATH_PREFIX}/${UPLOAD_PATH}" && \
+echo " - Success!"
