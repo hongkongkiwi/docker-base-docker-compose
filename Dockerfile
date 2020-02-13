@@ -1,3 +1,4 @@
 FROM docker:latest
+LABEL maintainer "Andy Savage <andy@savage.hk>"
 
-RUN apk add -qq curl jq wget bash docker-compose
+RUN apk add -qq docker-compose
