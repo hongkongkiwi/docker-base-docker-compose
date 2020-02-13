@@ -23,15 +23,18 @@ TIMEFORMAT=%R
 trap 'rm -f "$TMPFILE"' EXIT
 TMPFILE=$(mktemp) || exit 1
 
-if [ -f "$ITEM_TO_UPLOAD" ]; then
-  echo "Compressing files in ${ITEM_TO_UPLOAD}..." && \
-  tar zcf "$TMPFILE" "$ITEM_TO_UPLOAD" && \
+if [ -d "$ITEM_TO_UPLOAD" ]; then
+  pushd "$PWD" && \
+  cd "$ITEM_TO_UPLOAD" && \
+  echo "Compressing files in ${ITEM_TO_UPLOAD}" && \
+  tar zcf "$TMPFILE" . && \
   FILESIZE=`ls -lah "$TMPFILE" | awk '{ print $5}'` && \
-  echo " - Success (File is $FILESIZE)"
+  echo " - Success (File is $FILESIZE)" && \
+  popd > /dev/null
 else
   TMPFILE="$ITEM_TO_UPLOAD"
 fi
-echo "Uploading files to s3://${S3_BUCKET}/${S3_PATH_PREFIX}/${UPLOAD_PATH}..." && \
+echo "Uploading files to s3://${S3_BUCKET}/${S3_PATH_PREFIX}/${UPLOAD_PATH}" && \
 s3cmd \
     --quiet \
     --access_key="$S3_ACCESS_KEY" \
