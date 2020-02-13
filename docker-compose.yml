@@ -1,0 +1,5 @@
+version: '3.7'
+services:
+  docker-iamge-compose:
+    build: .  
+    image: hongkongkiwi/base-docker-compose
