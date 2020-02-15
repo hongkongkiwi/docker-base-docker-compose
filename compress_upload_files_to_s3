@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 
 S3_REGION=${S3_REGION:-"us-west-1"}
 S3_HOST=${S3_HOST:-"s3.${S3_REGION}.wasabisys.com"}
